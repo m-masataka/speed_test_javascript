@@ -1,0 +1,156 @@
+<html>
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Cache-Control" content="no-cache">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=10.0, user-scalable=yes">
+{% load static %}
+<style>
+div#header-fixed{
+    position: fixed;
+    background-color:#444;
+    top:0px;
+    left:0px;
+    width: 100%;
+    height:60px;
+    text-align: center;
+    line-height: 60px;
+    font-family: "メイリオ",sans-serif;
+    font-size: 40px;
+    color: #ffffff;
+}
+body {
+    padding-top:60px;
+}
+button.btn_startstop{
+    display: inline-block;
+    width: 30%;
+    height: 54px;
+    text-align: center;
+    text-decoration: none;
+    line-height: 54px;
+    outline: none;
+    font-size:20px;
+}
+div.output{
+    height: 40px;
+    margin: 10 10 10 20;
+    font-family: "メイリオ",sans-serif;
+    font-size: 40px;
+}
+.line {
+  fill: none;
+  stroke: steelblue;
+  stroke-width: 2px;
+}
+
+.area {
+  fill: lightsteelblue;
+}
+</style>
+<head>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<script src="http://d3js.org/d3.v4.min.js" charset="utf-8"></script>
+<div id="d3graph" style="border:1px solid #ccc; margin-bottom:10px"></div>
+<script type="text/javascript">
+function floatFormat( number, n ) {
+    var _pow = Math.pow( 10 , n ) ;
+    return Math.round( number * _pow ) / _pow ;
+}
+</script>
+<script type="text/javascript">
+    $.ajaxSetup({
+        cache: false
+    });
+    var speedtest = function() {
+      var start = (new Date()).getTime();
+      var sample_video = 'sample0.mp4';
+      jQuery.get("/sitestatic/video/"+sample_video, function(data) {
+        var end = (new Date()).getTime();
+        var sec = (end - start) / 1000;
+        var bytesPerSec = Math.round(data.length / sec);
+        console.log((bytesPerSec * 8 / 1000 / 1000) + 'M bps');
+        document.querySelector('#output').innerHTML=(floatFormat(bytesPerSec * 8 / 1000 / 1000,3)) + 'M bps'; 
+        update(bytesPerSec * 8 / 1000 / 1000);
+        
+      }).fail(function(){
+        update(0);
+      });
+    };
+    
+    speedtest_interval = setInterval(function(){speedtest();},1000);
+    function stop(){
+        clearInterval(speedtest_interval);
+    }
+    function start(){
+        boxAime = setInterval(function(){
+            speedtest();
+        },1000);
+    }
+</script>
+
+<script type="text/javascript">
+// set the dimensions and margins of the graph
+var margin = {top: 20, right: 20, bottom: 30, left: 50};
+var height = 300;
+var width = $("#d3graph").width();
+
+// set the ranges
+var x = d3.scaleTime().range([0, width]);
+var y = d3.scaleLinear().range([height, 0]);
+
+// define the area
+var area = d3.area()
+    .x(function(d,i) { return 10*i; })
+    .y0(height)
+    .y1(function(d,i) { return d; });
+
+// define the line
+var valueline = d3.line()
+    .x(function(d,i) { return 10*i; })
+    .y(function(d,i) { return d; });
+
+var svg = d3.select("#d3graph").append("svg")
+    .attr("width", width )
+    .attr("height", height);
+    //.append("g")
+    //.attr("transform","translate(" + margin.left + "," + margin.top + ")");
+var points = new Array();
+
+// get the data
+function update(speed) {
+  
+    points.push(300-speed*5);
+    if(points.length > $("#d3graph").width()/10) {
+            points.shift();
+    }
+  svg.selectAll("path").remove();
+  // add the area
+  svg.append("path")
+       .attr("class", "area")
+       .attr("d", area(points));
+
+  // add the valueline path.
+  svg.append("path")
+      .attr("class", "line")
+      .attr("d", valueline(points));
+
+  // add the X Axis
+  //svg.append("g")
+  //    .attr("transform", "translate(0," + height + ")")
+  //    .call(d3.axisBottom(x));
+
+  // add the Y Axis
+  //svg.append("g")
+  //    .call(d3.axisLeft(y));
+}
+</script>
+</head>
+<div id="header-fixed">
+    Spead Test
+</div>
+  <body>
+    <div id='output' class='output'>0</div>
+    <button class="btn_startstop" onClick='start()'>start</button>
+    <button class="btn_startstop" onClick='stop()'>stop</button>
+  </body>
+<html>
+
